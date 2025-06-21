@@ -1,0 +1,60 @@
+A step by step guide for the project
+
+Environment Setup:
+Install necessary libraries like langchain, openai, and duckduckgo-search.
+Warnings are disabled for clean output.
+Initialize API:
+OpenAI API key is set up for accessing GPT-3 or GPT-4 models via LangChain.
+LangChain tools are initialized to create an agent.
+DuckDuckGo Search Integration:
+DuckDuckGoSearchRun tool is loaded for fetching real-time stock news from the internet.
+Example search query: "Stock news India".
+The results are fetched and processed further.
+LangChain Agent:
+LangChain’s tool-using agents (like ReAct-style agents) are initialized.
+Tools such as the DuckDuckGoSearchRun are passed to the agent to perform tasks dynamically.
+Workflow:
+Input: A query about stock-related updates (e.g., stock news for a specific country or company).
+Search Execution: Use DuckDuckGo to gather search results.
+Language Model Processing: Summarize or process the gathered results using the OpenAI LLM.
+Output: Provide concise updates or news results.
+
+Streamlit Web Application:
+Divide the app into four distinct sections:
+1. Data Upload
+2. Stock Analysis
+3. AI Interaction
+4. Data Visualization
+
+Section 1: File Upload
+Allow users to upload a file (csv or xlsx) using st.file_uploader.
+If a file is uploaded:
+Determine the file type and load its content using pandas:
+read_csv for CSV files.
+read_excel for Excel files.
+Display a preview (first few rows) of the uploaded data using st.write.
+
+Section 2: Stock Price Retrieval
+Accept a stock ticker symbol (e.g., "TCS", "INFY") from the user through st.text_input.
+Use a slider (st.slider) to allow users to set the number of recent days of stock history to fetch (default is 5 days).
+When the Fetch Stock Data button is clicked:
+Fetch stock data using the Yahoo Finance API (yfinance library):
+Append .NS to the ticker for Indian stock exchange compatibility.
+Fetch the closing prices and volume for the last year.
+Limit the data to the specified number of days (history).
+Display the fetched stock data in a table.
+Plot the closing prices using st.line_chart.
+
+Section 3: AI Interaction
+Accept a user query in a text area (st.text_area).
+When the Get AI Response button is clicked:
+Pass the query to the LangChain agent for processing.
+Use the DuckDuckGo search tool and OpenAI model to generate a response.
+Display the response using st.write.
+
+Section 4: Visualization for Uploaded Data
+If a file is uploaded:
+Display an optional Visualization section.
+On clicking Generate Plot:
+Plot histograms of the data using matplotlib.
+Display the plot in the Streamlit app using st.pyplot.
