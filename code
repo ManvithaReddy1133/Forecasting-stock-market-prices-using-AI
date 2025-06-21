@@ -1,0 +1,506 @@
+#Initialization
+!pip install langchain-community
+!pip install openai
+
+import os
+import time
+from bs4 import BeautifulSoup
+import re
+import requests
+import warnings
+
+import langchain
+from langchain.llms import OpenAI
+from langchain.agents import load_tools, AgentType, Tool, initialize_agent
+os.environ["OPENAI_API_KEY"] = "Enter open api key here"
+
+warnings.filterwarnings("ignore")
+
+  # Upgrade OpenAI and LangChain libraries
+!pip install --upgrade openai langchain
+!pip install -U duckduckgo-search
+!pip install openai==0.28
+# Restart the runtime after running the above commands.
+
+# After restarting, import the necessary libraries
+import openai
+from langchain.llms import OpenAI
+from langchain.agents import load_tools, AgentType, Tool, initialize_agent
+
+# Set your OpenAI API key
+openai.api_key = "Enter open api key here"
+
+
+# Example usage with OpenAI's ChatCompletion
+response = openai.ChatCompletion.create(
+    model="gpt-3.5-turbo",
+    messages=[
+        {"role": "user", "content": "Hello!"}
+    ]
+)
+
+print(response.choices[0].message['content'])
+
+
+!pip install openai==0.28.0
+from langchain.chat_models import ChatOpenAI
+from langchain.agents import initialize_agent, AgentType
+from langchain.tools import DuckDuckGoSearchResults  # Example of a tool, replace with your tools
+
+# Initialize the model with OpenAI API key
+llm = ChatOpenAI(
+    openai_api_key="",  
+  # replace with your actual OpenAI API key
+    model="gpt-3.5-turbo"
+)
+
+# Define your tools (example using DuckDuckGo search, replace with your actual tools)
+tools = [DuckDuckGoSearchResults()]
+
+# Initialize the agent with the tools and model
+agent = initialize_agent(
+    tools=tools,
+    llm=llm,
+    agent_type=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
+    verbose=True
+)
+
+# Query the agent
+response = agent("Is Bajaj Finance a good investment choice right now?")
+print(response)
+
+#Defining the custom Tools
+import yfinance as yf
+
+# Fetch stock data from Yahoo Finance
+
+def get_stock_price(ticker,history=5):
+    # time.sleep(4) #To avoid rate limit error
+    if "." in ticker:
+        ticker=ticker.split(".")[0]
+    ticker=ticker+".NS"
+    stock = yf.Ticker(ticker)
+    df = stock.history(period="1y")
+    df=df[["Close","Volume"]]
+    df.index=[str(x).split()[0] for x in list(df.index)]
+    df.index.rename("Date",inplace=True)
+    df=df[-history:]
+    # print(df.columns)
+
+    return df.to_string()
+
+print(get_stock_price("TITAN"))
+
+
+  #Custom tools
+from langchain.agents import initialize_agent
+
+zero_shot_agent=initialize_agent(
+    llm=llm,
+    agent="zero-shot-react-description",
+    tools=tools,
+    verbose=True,
+    max_iteration=4,
+    return_intermediate_steps=True,
+    handle_parsing_errors=True
+)
+mport openai
+
+import os
+os.environ["OPENAI_API_KEY"] = "Enter open-api key here"
+openai.api_key="Enter open api key here"  
+
+  from langchain.llms import OpenAI
+
+llm=OpenAI(temperature=0,
+           model="gpt-3.5-turbo-16k")
+
+  #Openai function calling
+
+import json
+function=[
+        {
+        "name": "get_company_Stock_ticker",
+        "description": "This will get the indian NSE/BSE stock ticker of the company",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "ticker_symbol": {
+                    "type": "string",
+                    "description": "This is the stock symbol of the company.",
+                },
+
+                "company_name": {
+                    "type": "string",
+                    "description": "This is the name of the company given in query",
+                }
+            },
+            "required": ["company_name","ticker_symbol"],
+        },
+    }
+]
+
+
+
+def get_stock_ticker(query):
+    response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            temperature=0,
+            messages=[{
+                "role":"user",
+                "content":f"Given the user request, what is the comapany name and the company stock ticker ?: {query}?"
+            }],
+            functions=function,
+            function_call={"name": "get_company_Stock_ticker"},
+    )
+    message = response["choices"][0]["message"]
+    arguments = json.loads(message["function_call"]["arguments"])
+    company_name = arguments["company_name"]
+    company_ticker = arguments["ticker_symbol"]
+    return company_name,company_ticker
+
+get_stock_ticker("How is ths stock of Paytm doing?")
+
+
+
+
+  import pandas as pd
+import numpy as np
+import yfinance as yf
+import matplotlib.pyplot as plt
+import seaborn as sns
+from datetime import datetime
+
+# Setting up visualization styles
+sns.set_style('whitegrid')
+plt.style.use("fivethirtyeight")
+%matplotlib inline
+
+# The tech stocks we'll use for this analysis
+tech_list = ['AAPL', 'GOOG', 'MSFT', 'AMZN']
+# Set up End and Start times for data grab
+end = datetime.now()
+start = datetime(end.year - 1, end.month, end.day)
+
+# Fetch stock data directly using yfinance
+company_data = {}
+for stock in tech_list:
+    company_data[stock] = yf.download(stock, start=start, end=end)
+
+# Combine the data into a single DataFrame
+company_list = [company_data['AAPL'], company_data['GOOG'], company_data['MSFT'], company_data['AMZN']]
+company_name = ["APPLE", "GOOGLE", "MICROSOFT", "AMAZON"]
+
+for company, name in zip(company_list, company_name):
+    company["company_name"] = name
+
+# Concatenate all company data into a single DataFrame
+df = pd.concat(company_list, axis=0)
+
+# Check the last 10 rows
+print(df.tail(10))
+
+
+
+  import yfinance as yf
+from datetime import datetime
+
+# Define the tech stock list, start date, and end date
+tech_list = ['AAPL', 'GOOG', 'MSFT', 'AMZN']
+start = datetime(2020, 1, 1)
+end = datetime(2024, 1, 1)
+
+# Grab all the closing prices for the tech stock list into one DataFrame
+closing_df = yf.download(tech_list, start=start, end=end)['Adj Close']
+
+# Make a new tech returns DataFrame
+tech_returns = closing_df.pct_change()
+
+print(tech_returns.head())
+
+
+
+
+  import yfinance as yf
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from datetime import datetime
+
+# Define the tech stock list, start date, and end date
+tech_list = ['AAPL', 'GOOG', 'MSFT', 'AMZN']
+start = datetime(2020, 1, 1)
+end = datetime(2024, 1, 1)
+
+# Grab all the closing prices for the tech stock list into one DataFrame
+closing_df = yf.download(tech_list, start=start, end=end)['Adj Close']
+
+# Calculate the returns
+tech_returns = closing_df.pct_change()
+
+# Plotting the correlation of stock returns
+plt.figure(figsize=(10, 6))
+plt.subplot(2, 2, 1)
+sns.heatmap(tech_returns.corr(), annot=True, cmap='summer')
+plt.title('Correlation of Stock Returns')
+plt.show()
+
+
+
+  import yfinance as yf
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import MinMaxScaler
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, LSTM
+
+# Step 1: Fetch stock data using yfinance
+ticker = "AAPL"  # Replace with the stock ticker of your choice
+df = yf.download(ticker, start="2015-01-01", end="2023-01-01")
+
+# Step 2: Preprocessing the data
+# Only use the 'Close' column for predictions
+data = df[['Close']]
+data = data.dropna()  # Remove any missing values
+
+# Scale the data for LSTM
+scaler = MinMaxScaler(feature_range=(0, 1))
+scaled_data = scaler.fit_transform(data)
+
+# Step 3: Prepare the training dataset
+training_data_len = int(len(scaled_data) * 0.8)  # 80% training data
+train_data = scaled_data[:training_data_len]
+
+x_train = []
+y_train = []
+
+# Create sequences for LSTM
+for i in range(60, len(train_data)):
+    x_train.append(train_data[i-60:i, 0])  # Last 60 days
+    y_train.append(train_data[i, 0])      # Next day's value
+
+x_train, y_train = np.array(x_train), np.array(y_train)
+x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
+
+# Step 4: Build and train the LSTM model
+model = Sequential([
+    LSTM(50, return_sequences=True, input_shape=(x_train.shape[1], 1)),
+    LSTM(50, return_sequences=False),
+    Dense(25),
+    Dense(1)
+])
+
+model.compile(optimizer='adam', loss='mean_squared_error')
+model.fit(x_train, y_train, batch_size=32, epochs=10)
+
+# Step 5: Test the model
+test_data = scaled_data[training_data_len-60:]
+x_test = []
+y_test = data[training_data_len:].values
+
+for i in range(60, len(test_data)):
+    x_test.append(test_data[i-60:i, 0])
+
+x_test = np.array(x_test)
+x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1))
+
+predictions = model.predict(x_test)
+predictions = scaler.inverse_transform(predictions)  # Reverse scaling
+
+# Step 6: Visualize the results
+train = data[:training_data_len]
+valid = data[training_data_len:]
+valid['Predictions'] = predictions
+
+plt.figure(figsize=(16, 8))
+plt.title("Stock Price Prediction")
+plt.plot(train['Close'], label="Training Data")
+plt.plot(valid['Close'], label="Actual Data")
+plt.plot(valid['Predictions'], label="Predicted Data")
+plt.legend()
+plt.show()
+
+
+
+  # Script to scrap top5 googgle news for given company name
+
+def google_query(search_term):
+    if "news" not in search_term:
+        search_term=search_term+" stock news"
+    url=f"https://www.google.com/search?q={search_term}&cr=countryIN"
+    url=re.sub(r"\s","+",url)
+    return url
+
+def get_recent_stock_news(company_name):
+    # time.sleep(4) #To avoid rate limit error
+    headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36'}
+
+    g_query=google_query(company_name)
+    res=requests.get(g_query,headers=headers).text
+    soup=BeautifulSoup(res,"html.parser")
+    news=[]
+    for n in soup.find_all("div","n0jPhd ynAwRc tNxQIb nDgy9d"):
+        news.append(n.text)
+    for n in soup.find_all("div","IJl0Z"):
+        news.append(n.text)
+
+
+    if len(news)>6:
+        news=news[:4]
+    else:
+        news=news
+    news_string=""
+    for i,n in enumerate(news):
+        news_string+=f"{i}. {n}\n"
+    top5_news="Recent News:\n\n"+news_string
+
+    return top5_news
+
+
+print(get_recent_stock_news("Asian paints"))
+
+
+# Fetch financial statements from Yahoo Finance
+
+def get_financial_statements(ticker):
+    # time.sleep(4) #To avoid rate limit error
+    if "." in ticker:
+        ticker=ticker.split(".")[0]
+    else:
+        ticker=ticker
+    ticker=ticker+".NS"
+    company = yf.Ticker(ticker)
+    balance_sheet = company.balance_sheet
+    if balance_sheet.shape[1]>=3:
+        balance_sheet=balance_sheet.iloc[:,:3]    # Remove 4th years data
+    balance_sheet=balance_sheet.dropna(how="any")
+    balance_sheet = balance_sheet.to_string()
+
+    # cash_flow = company.cash_flow.to_string()
+    # print(balance_sheet)
+    # print(cash_flow)
+    return balance_sheet
+print(get_financial_statements("TATAPOWER.NS"))
+
+
+# Making tool list
+
+tools=[
+    Tool(
+        name="get stock data",
+        func=get_stock_price,
+        description="Use when you are asked to evaluate or analyze a stock. This will output historic share price data. You should input the the stock ticker to it "
+    ),
+    Tool(
+        name="DuckDuckGo Search",
+        func=search.run,
+        description="Use only when you need to get NSE/BSE stock ticker from internet, you can also get recent stock related news. Dont use it for any other analysis or task"
+    ),
+    Tool(
+        name="get recent news",
+        func=get_recent_stock_news,
+        description="Use this to fetch recent news about stocks"
+    ),
+
+    Tool(
+        name="get financial statements",
+        func=get_financial_statements,
+        description="Use this to get financial statement of the company. With the help of this data companys historic performance can be evaluaated. You should input stock ticker to it"
+    )
+
+
+]
+
+
+
+
+
+
+  def Anazlyze_stock(query):
+    #agent.run(query) Outputs Company name, Ticker
+    Company_name,ticker=get_stock_ticker(query)
+    print({"Query":query,"Company_name":Company_name,"Ticker":ticker})
+    stock_data=get_stock_price(ticker,history=10)
+    stock_financials=get_financial_statements(ticker)
+    stock_news=get_recent_stock_news(Company_name)
+
+    # available_information=f"Stock Price: {stock_data}\n\nStock Financials: {stock_financials}\n\nStock News: {stock_news}"
+    available_information=f"Stock Financials: {stock_financials}\n\nStock News: {stock_news}"
+
+    print("\n\nAnalyzing.....\n")
+    analysis=llm(f"Give detail stock analysis, Use the available data and provide investment recommendation. \
+             The user is fully aware about the investment risk, dont include any kind of warning like 'It is recommended to conduct further research and analysis or consult with a financial advisor before making an investment decision' in the answer \
+             User question: {query} \
+             You have the following information available about {Company_name}. Write (5-8) pointwise investment analysis to answer user query, At the end conclude with proper explaination.Try to Give positives and negatives  : \
+              {available_information} "
+             )
+    print(analysis)
+
+    return analysis
+
+
+  # Yfinance upgrade
+  pip install --upgrade yfinance pandas_datareader
+
+
+llm=OpenAI(temperature=0,
+           model_name="gpt-3.5-turbo-16k-0613")
+
+
+
+  
+# Let's see a historical view of the closing price
+plt.figure(figsize=(15, 10))
+plt.subplots_adjust(top=1.25, bottom=1.2)
+
+for i, company in enumerate(company_list, 1):
+    plt.subplot(2, 2, i)
+    company['Adj Close'].plot()
+    plt.ylabel('Adj Close')
+    plt.xlabel(None)
+    plt.title(f"Closing Price of {tech_list[i - 1]}")
+
+plt.tight_layout()
+
+
+
+
+
+  company_data = {}
+for stock in tech_list:
+    company_data[stock] = yf.download(stock, start=start, end=end)
+
+# Moving Average Days
+ma_day = [10, 20, 50]
+
+# Add moving average columns to each company's data
+for ma in ma_day:
+    for stock in tech_list:
+        column_name = f"MA for {ma} days"
+        company_data[stock][column_name] = company_data[stock]['Adj Close'].rolling(ma).mean()
+
+# Plotting the data
+fig, axes = plt.subplots(nrows=2, ncols=2)
+fig.set_figheight(10)
+fig.set_figwidth(15)
+
+# Apple
+company_data['AAPL'][['Adj Close', 'MA for 10 days', 'MA for 20 days', 'MA for 50 days']].plot(ax=axes[0,0])
+axes[0,0].set_title('APPLE')
+
+# Google
+company_data['GOOG'][['Adj Close', 'MA for 10 days', 'MA for 20 days', 'MA for 50 days']].plot(ax=axes[0,1])
+axes[0,1].set_title('GOOGLE')
+
+# Microsoft
+company_data['MSFT'][['Adj Close', 'MA for 10 days', 'MA for 20 days', 'MA for 50 days']].plot(ax=axes[1,0])
+axes[1,0].set_title('MICROSOFT')
+
+# Amazon
+company_data['AMZN'][['Adj Close', 'MA for 10 days', 'MA for 20 days', 'MA for 50 days']].plot(ax=axes[1,1])
+axes[1,1].set_title('AMAZON')
+
+fig.tight_layout()
+plt.show()
+
